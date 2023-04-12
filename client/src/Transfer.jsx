@@ -1,22 +1,76 @@
 import { useState } from "react";
+import { useSignTypedData } from 'wagmi'
+
 import server from "./server";
+
+const domain = {
+  name: 'Goerli',
+  version: '5.7.2',
+  chainId: 5,
+  verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC',
+}
+
+const types = {
+  Person: [
+    { name: 'name', type: 'string' },
+    { name: 'wallet', type: 'string' },
+  ],
+  Mail: [
+    { name: 'from', type: 'Person' },
+    { name: 'to', type: 'Person' },
+    { name: 'amount', type: 'string' },
+  ],
+}
 
 function Transfer({ address, setBalance }) {
   const [sendAmount, setSendAmount] = useState("");
   const [recipient, setRecipient] = useState("");
 
+  const { signTypedData } = useSignTypedData({
+    domain,
+    types,
+    value: {
+      from: {
+        name: 'Cow',
+        wallet: address,
+      },
+      to: {
+        name: 'Bob',
+        wallet: recipient,
+      },
+      amount: sendAmount,
+    },
+    onError: (err) => console.log(err),
+    onSuccess: data => transfer(data)
+  })
+
   const setValue = (setter) => (evt) => setter(evt.target.value);
 
-  async function transfer(evt) {
+  function sign(evt) {
     evt.preventDefault();
+    signTypedData()
+  }
 
+  async function transfer(data) {
     try {
       const {
         data: { balance },
-      } = await server.post(`send`, {
-        sender: address,
-        amount: parseInt(sendAmount),
-        recipient,
+      } = await server.post(`send`, { hash: data, payload:
+        {
+          domain,
+          types,
+          value: {
+            from: {
+              name: 'Cow',
+              wallet: address,
+            },
+            to: {
+              name: 'Bob',
+              wallet: recipient,
+            },
+            amount: sendAmount,
+          },
+        }
       });
       setBalance(balance);
     } catch (ex) {
@@ -25,8 +79,8 @@ function Transfer({ address, setBalance }) {
   }
 
   return (
-    <form className="container transfer" onSubmit={transfer}>
-      <h1>Send Transaction</h1>
+    <form className="container transfer" onSubmit={sign}>
+      <h1>Sign Transaction</h1>
 
       <label>
         Send Amount
@@ -46,7 +100,7 @@ function Transfer({ address, setBalance }) {
         ></input>
       </label>
 
-      <input type="submit" className="button" value="Transfer" />
+      <input type="submit" className="button" value="Sign" />
     </form>
   );
 }

@@ -1,9 +1,10 @@
-import server from "./server";
+import { useEffect } from 'react'
 
-function Wallet({ address, setAddress, balance, setBalance }) {
+import server from './server'
+
+function Wallet({ address, balance, setBalance }) {
   async function onChange(evt) {
     const address = evt.target.value;
-    setAddress(address);
     if (address) {
       const {
         data: { balance },
@@ -14,13 +15,19 @@ function Wallet({ address, setAddress, balance, setBalance }) {
     }
   }
 
+  useEffect(() => {
+    if (address) {
+      server.post('/initAddress', { address, amount: 50 }).then(() => setBalance(50))
+    }
+  }, [address])
+
   return (
     <div className="container wallet">
       <h1>Your Wallet</h1>
 
       <label>
         Wallet Address
-        <input placeholder="Type an address, for example: 0x1" value={address} onChange={onChange}></input>
+        <input placeholder="Type an address, for example: 0x1" value={address} onChange={onChange} disabled></input>
       </label>
 
       <div className="balance">Balance: {balance}</div>
